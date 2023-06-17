@@ -1,13 +1,16 @@
 import requests
 from bs4 import BeautifulSoup
+import json
 
 
 def get_actors(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
 
+
     actors_list = soup.find_all('div', class_='lister-item-content')
     actors = [actor.find('h3').find('a').text.strip() for actor in actors_list]
+
 
     return actors
 
@@ -57,7 +60,7 @@ def get_actor_awards(actor_url):
             awards.append((award_name, award_year))
 
     return awards
-dsfoij
+
 
 def get_actor_genre_from_movies(movies):
     genres = set()
@@ -103,6 +106,29 @@ def get_average_rating(movie_id):
         return None
 
 
+def get_top_movies(actor_movies):
+    top_movies = []
+
+    for movie_name, movie_year, movie_id in actor_movies:
+        movie_url = f"https://www.imdb.com/title/{movie_id}/?ref_=nm_flmg_t_12_act"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36'
+        }
+        response = requests.get(movie_url, headers=headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        genre_element = soup.find('span', class_='ipc-chip__text')
+        if genre_element:
+            genre = genre_element.text.strip()
+
+        top_movies.append((movie_name, movie_year, genre))
+
+    top_movies = sorted(top_movies, key=lambda x: int(''.join(filter(str.isdigit, x[1]))), reverse=True)[:5]
+
+    return top_movies
+
+
+
 def print_actor_info(actor, url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -110,6 +136,11 @@ def print_actor_info(actor, url):
 
     actor_content = None
     for actor_div in soup.find_all('div', class_='lister-item-content'):
+        selected_actor_data = {
+            'name': selected_actor,
+            'info': {}
+        }
+
         if actor_div.find('h3').find('a').text.strip() == actor:
             actor_paragraphs = actor_div.find_all('p')
             if len(actor_paragraphs) > 1:
@@ -123,6 +154,8 @@ def print_actor_info(actor, url):
         print(f"Actor: {actor}")
         print(actor_content)
         print(f"Full Biography: {full_bio_url}")
+        selected_actor_data['info']['content'] = actor_content
+        selected_actor_data['info']['full_bio_url'] = full_bio_url
 
         # Retrieve actor's movies from their individual IMDb page
         actor_movies = get_actor_movies(full_bio_url)
@@ -134,6 +167,8 @@ def print_actor_info(actor, url):
             for i, (movie_name, movie_year, movie_id) in enumerate(actor_movies, 1):
                 print(f"{i}. {movie_name} ({movie_year})")
 
+            selected_actor_data['info']['movies'] = actor_movies
+
             # Retrieve actor's genre from their movies
             # Inside the print_actor_info function
 
@@ -141,10 +176,24 @@ def print_actor_info(actor, url):
 
             if actor_genre:
                 print(f"\nGenre for {actor}: {actor_genre}")
+                selected_actor_data['info']['genre'] = actor_genre
+
             else:
                 print(f"No genre information found for {actor}")
 
             print(f"For more movies, click {full_bio_url}")
+        else:
+            print(f"No movie information found for {actor}")
+
+        # Retrieve top 5 movies with years and genres
+        top_movies = get_top_movies(actor_movies)
+
+        if top_movies:
+            print("\nTop 5 Movies:")
+            for i, (movie_name, movie_year, genre) in enumerate(top_movies, 1):
+                print(f"{i}. {movie_name} ({movie_year}) - Genre: {genre}")
+                selected_actor_data['info']['top_movies'] = top_movies
+
         else:
             print(f"No movie information found for {actor}")
 
@@ -175,16 +224,23 @@ def print_actor_info(actor, url):
             for award_name, award_year in actor_awards:
                 if "Winner" in award_name:
                     print(f"{award_name} ({award_year})")
+            selected_actor_data['info']['awards'] = actor_awards
+
         else:
             print(f"No award information found for {actor}")
     else:
         print(f"Information not found for {actor}")
+    data['actors'].append(selected_actor_data)
 
 
 if __name__ == "__main__":
 
     imdb_url = "https://www.imdb.com/list/ls053501318/"
     actors = get_actors(imdb_url)
+
+    data = {
+        'actors': []
+    }
 
     # Print numbered list of actors
     for i, actor in enumerate(actors, 1):
@@ -206,3 +262,9 @@ if __name__ == "__main__":
         print_actor_info(selected_actor, imdb_url)
 
         choice = input("\nEnter the actor number or name for more info (or 'q' to quit): ")
+    output_file = 'actors_data.json'
+
+    with open(output_file, 'w') as file:
+        json.dump(data, file, indent=4)
+
+    print(f"\nData saved in {output_file}")
