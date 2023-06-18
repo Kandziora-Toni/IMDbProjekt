@@ -106,7 +106,7 @@ def get_average_rating(movie_id): #returns rating of every collected movie
         return None
 
 
-def get_top_movies(actor_movies):
+def get_top_movies(actor_movies): #returns 5 best movies in sorted way
     top_movies = []
 
     for movie_name, movie_year, movie_id in actor_movies:
