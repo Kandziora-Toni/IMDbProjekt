@@ -106,7 +106,7 @@ def get_average_rating(movie_id): #returns rating of every collected movie
         return None
 
 
-def get_top_movies(actor_movies): # function to retrieve the top 5 movies of an actor based on ratings
+def get_top_movies(actor_movies):
     top_movies = []
 
     for movie_name, movie_year, movie_id in actor_movies:
@@ -117,17 +117,24 @@ def get_top_movies(actor_movies): # function to retrieve the top 5 movies of an 
         response = requests.get(movie_url, headers=headers)
         soup = BeautifulSoup(response.text, 'html.parser')
 
+        rating_element = get_average_rating(movie_id)
         genre_element = soup.find('span', class_='ipc-chip__text')
+
+        if rating_element:
+            rating = rating_element
+        else:
+            rating = None
+
         if genre_element:
             genre = genre_element.text.strip()
+        else:
+            genre = None
 
-        top_movies.append((movie_name, movie_year, genre))
+        top_movies.append((movie_name, movie_year, rating, genre))
 
-    top_movies = sorted(top_movies, key=lambda x: int(''.join(filter(str.isdigit, x[1]))), reverse=True)[:5]
+    top_movies = sorted(top_movies, key=lambda x: float(x[2]) if x[2] else 0, reverse=True)[:5]
 
     return top_movies
-
-
 
 def print_actor_info(actor, url): #function that calls all other functions for data collection and prints the info
     response = requests.get(url)
@@ -153,7 +160,7 @@ def print_actor_info(actor, url): #function that calls all other functions for d
         print(f"--------------")
         print(f"Actor: {actor}")
         print(actor_content)
-        print(f"Full Biography: {full_bio_url}")
+        print(f"Full Biography: {full_bio_url}/bio/?ref_=nm_ov_bio_sm")
         selected_actor_data['info']['content'] = actor_content
         selected_actor_data['info']['full_bio_url'] = full_bio_url
 
@@ -185,26 +192,23 @@ def print_actor_info(actor, url): #function that calls all other functions for d
         else:
             print(f"No movie information found for {actor}")
 
-        # Retrieve top 5 movies with years and genres
-        top_movies = get_top_movies(actor_movies)
 
-        if top_movies:
-            print("\nTop 5 Movies:")
-            for i, (movie_name, movie_year, genre) in enumerate(top_movies, 1):
-                print(f"{i}. {movie_name} ({movie_year}) - Genre: {genre}")
-                selected_actor_data['info']['top_movies'] = top_movies
-
-        else:
-            print(f"No movie information found for {actor}")
 
         # Retrieve actor's average rating for movies
-        average_rating_overall = get_average_rating(movie_id)
+
+        average_rating_overall = {}
         average_ratings_yearly = {}
+        rating_list = []
 
         for _, movie_year, movie_id in actor_movies:
             average_rating_year = get_average_rating(movie_id)
             if average_rating_year:
                 average_ratings_yearly[movie_year] = average_rating_year
+
+            if get_average_rating(movie_id):
+                rating_list.append(float(get_average_rating(movie_id)))
+                average_rating_overall = round(sum(rating_list)/len(rating_list),2)
+
 
         if average_rating_overall:
             print(f"\nAverage Rating for {actor}: {average_rating_overall}")
@@ -215,6 +219,21 @@ def print_actor_info(actor, url): #function that calls all other functions for d
             print("\nAverage Ratings by Year:")
             for year, rating in average_ratings_yearly.items():
                 print(f"{year}: {rating}")
+
+        selected_actor_data['info']['rating_yearly'] = average_ratings_yearly
+        selected_actor_data['info']['average_rating'] = average_rating_overall
+
+
+        # Retrieve the top 5 highest rated movies
+        top_movies = get_top_movies(actor_movies)
+
+        print(f"\nTop 5 Movies for {actor}:")
+        for i, (movie_name, movie_year, rating, genre) in enumerate(top_movies, 1):
+            print(f"{i}. {movie_name} ({movie_year})")
+            print(f"Rating: {rating}")
+            print(f"Genre: {genre}")
+            print()
+        selected_actor_data['info']['top_movies'] = top_movies
 
         # Retrieve actor's awards from their individual IMDb page
         actor_awards = get_actor_awards(actor_bio_link)
