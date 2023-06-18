@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import json
 
 
-def get_actors(url):
+def get_actors(url): #gets the list of actors of given URL
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
 
@@ -14,7 +14,7 @@ def get_actors(url):
 
     return actors
 
-def get_actor_movies(actor_url):
+def get_actor_movies(actor_url): #returns the latest 15 movies of selected actor in touple with name year and id
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36'
     }
@@ -40,7 +40,7 @@ def get_actor_movies(actor_url):
 
     return movies
 
-def get_actor_awards(actor_url):
+def get_actor_awards(actor_url): # returns all awards nominated and won by actor
     awards_url = f"https://www.imdb.com{actor_url}/awards/?ref_=nm_ql_2"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36'
@@ -62,7 +62,7 @@ def get_actor_awards(actor_url):
     return awards
 
 
-def get_actor_genre_from_movies(movies):
+def get_actor_genre_from_movies(movies): #returns genre of every movie collected for selected actor and removes double values
     genres = set()
 
     headers = {
@@ -91,7 +91,7 @@ def get_actor_genre_from_movies(movies):
     return None
 
 
-def get_average_rating(movie_id):
+def get_average_rating(movie_id): #returns rating of every collected movie
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36'
     }
@@ -106,7 +106,7 @@ def get_average_rating(movie_id):
         return None
 
 
-def get_top_movies(actor_movies):
+def get_top_movies(actor_movies): # function to retrieve the top 5 movies of an actor based on ratings
     top_movies = []
 
     for movie_name, movie_year, movie_id in actor_movies:
@@ -129,7 +129,7 @@ def get_top_movies(actor_movies):
 
 
 
-def print_actor_info(actor, url):
+def print_actor_info(actor, url): #function that calls all other functions for data collection and prints the info
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
 
@@ -170,7 +170,7 @@ def print_actor_info(actor, url):
             selected_actor_data['info']['movies'] = actor_movies
 
             # Retrieve actor's genre from their movies
-            # Inside the print_actor_info function
+
 
             actor_genre = get_actor_genre_from_movies(actor_movies)
 
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     for i, actor in enumerate(actors, 1):
      print(f"{i}. {actor}")
 
-    # Prompt user for actor selection
+    # Prompt user for actor selection in loop
     choice = input("Enter the actor number or name for more info (or 'q' to quit): ")
     while choice.lower() != 'q':
         if choice.isdigit() and int(choice) in range(1, len(actors) + 1):
@@ -262,7 +262,7 @@ if __name__ == "__main__":
         print_actor_info(selected_actor, imdb_url)
 
         choice = input("\nEnter the actor number or name for more info (or 'q' to quit): ")
-    output_file = 'actors_data.json'
+    output_file = 'actors_data.json' #after quitting with 'q' data will be saved
 
     with open(output_file, 'w') as file:
         json.dump(data, file, indent=4)
