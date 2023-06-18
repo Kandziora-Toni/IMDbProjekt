@@ -162,7 +162,7 @@ def print_actor_info(actor, url): #function that calls all other functions for d
         print(actor_content)
         print(f"Full Biography: {full_bio_url}/bio/?ref_=nm_ov_bio_sm")
         selected_actor_data['info']['content'] = actor_content
-        selected_actor_data['info']['full_bio_url'] = full_bio_url
+        selected_actor_data['info']['actor_url'] = full_bio_url
 
         # Retrieve actor's movies from their individual IMDb page
         actor_movies = get_actor_movies(full_bio_url)
